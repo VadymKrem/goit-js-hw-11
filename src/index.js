@@ -1,82 +1,143 @@
 import axios from 'axios';
+import Notiflix from 'notiflix';
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
-import Notiflix from 'notiflix';
 
+const api_key = '37472485-f9bdad7e7011607296af4912b';
 
-const form = document.querySelector('form');
-const input = document.querySelector('input'); 
-const gallery = document.querySelector('.gallery');
+const formEl = document.querySelector('form');
+const inputEl = document.querySelector('input'); 
+const galleryPhotos = document.querySelector('.gallery');
+// const loadMoreAuto = document.querySelector('.load-more-auto');
+// console.log(loadMoreAuto)
 
-const PER_PAGE = 40;
+// loadMoreAuto.classList.add('is-hidden');
+let page = 1;
 let searchQuery = '';
-let pageCount = 1;
-let isLoading = false;
-let totalPages = 0;
+let perPage;
+let totalValues;
+let inputValue = '';
 
-// запит на сайт з параметрами ТЗ
-const API_KEY = '37472485-f9bdad7e7011607296af4912b';
-const url = 'https://pixabay.com/api/';
-const quantityPerPage = 40;
+let lightbox; 
 
-async function getImages(searchQuerys, countPage) {
-  const parametres = {
-    parametres: {
-      timeout: 1000,
-      key: API_KEY,
-      q: searchQuerys,
-      image_type: 'photo',
-      orientation: 'horizontal',
-      page: countPage,
-      per_page: quantityPerPage,
-    },
-  };
+function fetch(searchQuery, pageCount) {
+    perPage = 40;
+    const urlSource = 'https://pixabay.com/api/?';
+    const params = new URLSearchParams({
+        key: api_key,
+        q: searchQuery,
+        image_type: 'photo',
+        orientation: 'horizontal',
+        safesearch: true,
+        per_page: perPage,
+        page: pageCount,
+    });
 
-  const response = await axios.get(url, parametres)
-    .then(response => { return response.data })
-    .catch(error => Notiflix.Notify.failure(error))
+    return urlSource + params.toString();
 }
 
-// ф-ція створення розмітки
-function createImageCardMarkup(galleryCards) {
-  return galleryCards
-    .map(({
-        webformatURL, // посилання на маленьке зображення
-        largeImageURL, // посилання на велике зображення
-        tags, // теги
-        likes, // кількість лайків
-        views, // кількість переглядів
-        comments, // кількість коментів
-        downloads, // кількість завантажень
-      }) =>
-        `
-    <div class="gallery">
-      <a class="link-gallery" href="${largeImageURL}">
-        <img
-          class="item-image"
-          src="${webformatURL}" 
-          alt="${tags}"
-          loading="lazy"/>
+function getAxiosImages(searchQuery, page) {
+    const url = fetch(searchQuery, page);
+   
+    return axios.get(url).then(response => response).catch(error => Notiflix.Notify.failure(error))
+}
+
+function makeMarkup(responseData) {
+  let galleryItems = responseData.data.hits.map(item => {
+    let galleryBlock = document.createElement('div');
+    galleryBlock.innerHTML = `
+      <a class="gallery_link" href="${item.largeImageURL}">
+        <img class="image" src="${item.webformatURL}" alt="${item.tags}" loading="lazy"/>
       </a>
-
       <div class="info">
-        <p class="info-item"><b>Likes</b>${likes}</p>
-        <p class="info-item"><b>Views</b>${views}</p>
-        <p class="info-item"><b>Comments</b>${comments}</p>
-        <p class="info-item"><b>Downloads</b>${downloads}</p>
+        <p>${item.likes}  <b>Likes</b>  ${item.views}  <b>Views</b>  ${item.comments}  <b>Comments</b>  ${item.downloads}  <b>Downloads</b><p>
       </div>
-      
-    </div>
-    `
-    )
-    .join('');
+    `;
+    return galleryBlock;
+  });
+
+  galleryItems.forEach(item => {
+    galleryPhotos.appendChild(item);
+  });
+  
+  lightbox.refresh();
+
+  const { height: cardHeight } = document
+    .querySelector(".gallery")
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: "smooth",
+  });
+
+  window.scrollTo(0, 0);
 }
-// скролл
-const { height: cardHeight } = document
+
+async function onSubmit(event) {
+    event.preventDefault();
+
+    searchQuery = inputEl.value;
+    page = 1;
+    let responseData;
+    
+    if (searchQuery.length === 0) {
+        Notiflix.Notify.warning('Sorry, your request is empty')
+    } else {
+        try {
+            responseData = await getAxiosImages(searchQuery, page);
+            if (responseData.data.total === 0) {
+                throw new Error('Sorry, there are no images matching your search query. Please try again.');
+            } else {
+              galleryPhotos.innerHTML = '';
+              makeMarkup(responseData);
+              inputEl.value = '';
+              Notiflix.Notify.success(`Hooray! We found ${responseData.data.totalHits} images.`)
+            }
+        } catch (error) {
+            Notiflix.Notify.failure(error.message);
+        }
+    }
+};
+
+formEl.addEventListener('submit', onSubmit);
+
+let isLoading = false;
+let throttleTimeout;
+let currentScrollTop = 0;
+let previousScrollTop = 0;
+
+// async function loadMoreImages() {
+//   if (isLoading || page * perPage >= totalValues) {
+//     return
+//   }
+//   isLoading = true;
+//   page++;
+    
+//   try {
+//     let responseData = await getAxiosImages(searchQuery, page);
+//     makeMarkup(responseData);
+//     totalValues = responseData.data.totalHits;
+//   } catch (error) {
+//     Notiflix.Notify.failure(error.message);
+//   } finally {
+//     isLoading = false;
+//   }
+// }
+
+function onScroll() {
+ const { height: cardHeight } = document
   .querySelector(".gallery")
   .firstElementChild.getBoundingClientRect();
 
 window.scrollBy({
   top: cardHeight * 2,
   behavior: "smooth",
+});
+}
+
+window.addEventListener('scroll', onScroll);
+
+document.addEventListener('DOMContentLoaded', function() {
+  lightbox = new SimpleLightbox('.gallery a');
 });
