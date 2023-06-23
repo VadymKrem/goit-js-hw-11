@@ -8,11 +8,13 @@ import { getAxiosImages } from './js/api';
 const formEl = document.querySelector('form');
 const inputEl = document.querySelector('input'); 
 const galleryPhotos = document.querySelector('.gallery');
-const loadMore = document.querySelector('.load-more-btn');
+const loadMoreBtn = document.querySelector('.load-more-btn');
 const loadMoreAuto = document.querySelector('.load-more-auto');
 
+const perPage = 40;
+let page = 1;
 
-loadMore.classList.add('is-hidden');
+loadMoreBtn.classList.add('is-hidden');
 
 let totalValues;
 let inputValue = '';
@@ -57,24 +59,13 @@ function makeMarkup(responseData) {
     `
     )
     .join('');
-
-  
-  lightbox.refresh();
-  
-  const { height: cardHeight } = document
-    .querySelector(".gallery")
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: "smooth",
-  });
-}
+  }
 
 async function onSubmit(event) {
     event.preventDefault();
 
-    searchQuery = inputEl.value;
+    inputValue = inputEl.value;
+    searchQuery = inputValue;
     page = 1;
     let responseData;
     
@@ -88,6 +79,16 @@ async function onSubmit(event) {
             } else {
               galleryPhotos.innerHTML = '';
               galleryPhotos.insertAdjacentHTML('beforeend', makeMarkup(responseData));
+              lightbox.refresh();
+  //             const { height: cardHeight } = document
+  //             .querySelector(".gallery")
+  //             .firstElementChild.getBoundingClientRect();
+
+  //             window.scrollBy({
+  //             top: cardHeight * 2,
+  //             behavior: "smooth",
+  // });     
+    
               inputEl.value = '';
               Notiflix.Notify.success(`Hooray! We found ${responseData.data.totalHits} images.`)
             }
@@ -132,14 +133,16 @@ window.scrollBy({
   top: cardHeight * 2,
   behavior: "smooth",
 });
-  const documentRect = document.documentElement.getBoundingClientRect();
+  loadMoreBtn.classList.remove('is-hidden');
+  // loadMoreBtn.addEventListen('', loadMoreImages())
+  // const documentRect = document.documentElement.getBoundingClientRect();
   
-    if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.scrollY > currentScrollTop) {
+  //   if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.scrollY > currentScrollTop) {
       
-      loadMore.classList.remove('is-hidden');
-      loadMore.addEventListener('submit', loadMoreImages())
+  //     loadMoreBtn.classList.remove('is-hidden');
+  //     loadMoreBtn.addEventListener('submit', loadMoreImages())
 
-  }
+  // }
   currentScrollTop = window.scrollY;
 }
 
