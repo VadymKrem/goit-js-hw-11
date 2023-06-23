@@ -13,6 +13,7 @@ const loadMoreAuto = document.querySelector('.load-more-auto');
 
 const perPage = 40;
 let page = 1;
+let searchQuery = '';
 
 loadMoreBtn.classList.add('is-hidden');
 
