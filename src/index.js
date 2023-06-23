@@ -66,7 +66,7 @@ async function onSubmit(event) {
     event.preventDefault();
 
     inputValue = inputEl.value;
-    searchQuery = inputValue;
+    const searchQuery = inputValue;
     page = 1;
     let responseData;
     
