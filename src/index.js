@@ -1,67 +1,66 @@
-import axios from 'axios';
 import Notiflix from 'notiflix';
-import SimpleLightbox from "simplelightbox";
-import "simplelightbox/dist/simple-lightbox.min.css";
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+import { getAxiosImages } from './js/api';
 
-const api_key = '37472485-f9bdad7e7011607296af4912b';
+
 
 const formEl = document.querySelector('form');
 const inputEl = document.querySelector('input'); 
 const galleryPhotos = document.querySelector('.gallery');
-// const loadMoreAuto = document.querySelector('.load-more-auto');
-// console.log(loadMoreAuto)
+const loadMore = document.querySelector('.load-more-btn');
+const loadMoreAuto = document.querySelector('.load-more-auto');
 
-// loadMoreAuto.classList.add('is-hidden');
-let page = 1;
-let searchQuery = '';
-let perPage;
+
+loadMore.classList.add('is-hidden');
+
 let totalValues;
 let inputValue = '';
 
-let lightbox; 
+const lightBox = new SimpleLightbox('.gallery a', {
+  captionsData: 'alt',
+  captionDelay: 250,
+  enableKeyboard: true
+});
 
-function fetch(searchQuery, pageCount) {
-    perPage = 40;
-    const urlSource = 'https://pixabay.com/api/?';
-    const params = new URLSearchParams({
-        key: api_key,
-        q: searchQuery,
-        image_type: 'photo',
-        orientation: 'horizontal',
-        safesearch: true,
-        per_page: perPage,
-        page: pageCount,
-    });
 
-    return urlSource + params.toString();
-}
-
-function getAxiosImages(searchQuery, page) {
-    const url = fetch(searchQuery, page);
-   
-    return axios.get(url).then(response => response).catch(error => Notiflix.Notify.failure(error))
-}
 
 function makeMarkup(responseData) {
-  let galleryItems = responseData.data.hits.map(item => {
-    let galleryBlock = document.createElement('div');
-    galleryBlock.innerHTML = `
-      <a class="gallery_link" href="${item.largeImageURL}">
-        <img class="image" src="${item.webformatURL}" alt="${item.tags}" loading="lazy"/>
+ return responseData.data.hits
+    .map(
+      ({
+        webformatURL, 
+        largeImageURL, 
+        tags, 
+        likes, 
+        views, 
+        comments, 
+        downloads, 
+      }) =>
+        `
+    <div class="photo-card">
+      <a class="gallery-link" href="${largeImageURL}">
+        <img
+          class="gallery-image"
+          src="${webformatURL}" 
+          alt="${tags}" 
+          loading="lazy" />
       </a>
       <div class="info">
-        <p>${item.likes}  <b>Likes</b>  ${item.views}  <b>Views</b>  ${item.comments}  <b>Comments</b>  ${item.downloads}  <b>Downloads</b><p>
+        <p class="info-item"><b>Likes</b>  ${likes}</p>
+        <p class="info-item"><b>Views</b>  ${views}</p>
+        <p class="info-item"><b>Comments</b>  ${comments}</p>
+        <p class="info-item"><b>Downloads</b>  ${downloads}</p>
       </div>
-    `;
-    return galleryBlock;
-  });
+      
+    </div>
+    `
+    )
+    .join('');
 
-  galleryItems.forEach(item => {
-    galleryPhotos.appendChild(item);
-  });
   
   lightbox.refresh();
-
+  
   const { height: cardHeight } = document
     .querySelector(".gallery")
     .firstElementChild.getBoundingClientRect();
@@ -70,8 +69,6 @@ function makeMarkup(responseData) {
     top: cardHeight * 2,
     behavior: "smooth",
   });
-
-  window.scrollTo(0, 0);
 }
 
 async function onSubmit(event) {
@@ -90,7 +87,7 @@ async function onSubmit(event) {
                 throw new Error('Sorry, there are no images matching your search query. Please try again.');
             } else {
               galleryPhotos.innerHTML = '';
-              makeMarkup(responseData);
+              galleryPhotos.insertAdjacentHTML('beforeend', makeMarkup(responseData));
               inputEl.value = '';
               Notiflix.Notify.success(`Hooray! We found ${responseData.data.totalHits} images.`)
             }
@@ -107,23 +104,24 @@ let throttleTimeout;
 let currentScrollTop = 0;
 let previousScrollTop = 0;
 
-// async function loadMoreImages() {
-//   if (isLoading || page * perPage >= totalValues) {
-//     return
-//   }
-//   isLoading = true;
-//   page++;
-    
-//   try {
-//     let responseData = await getAxiosImages(searchQuery, page);
-//     makeMarkup(responseData);
-//     totalValues = responseData.data.totalHits;
-//   } catch (error) {
-//     Notiflix.Notify.failure(error.message);
-//   } finally {
-//     isLoading = false;
-//   }
-// }
+async function loadMoreImages() {
+  if (isLoading || page * perPage >= totalValues) {
+    return
+  }
+  isLoading = true;
+  page++;
+  previousScrollTop = window.scrollY;  
+  try {
+    let responseData = await getAxiosImages(searchQuery, page);
+    galleryPhotos.insertAdjacentHTML('beforeend', makeMarkup(responseData));
+    totalValues = responseData.data.totalHits;
+  } catch (error) {
+    Notiflix.Notify.failure(error.message);
+  } finally {
+    isLoading = false;
+    window.scrollTo(0, previousScrollTop);
+  }
+  }
 
 function onScroll() {
  const { height: cardHeight } = document
@@ -134,10 +132,15 @@ window.scrollBy({
   top: cardHeight * 2,
   behavior: "smooth",
 });
+  const documentRect = document.documentElement.getBoundingClientRect();
+  
+    if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.scrollY > currentScrollTop) {
+      
+      loadMore.classList.remove('is-hidden');
+      loadMore.addEventListener('submit', loadMoreImages())
+
+  }
+  currentScrollTop = window.scrollY;
 }
 
 window.addEventListener('scroll', onScroll);
-
-document.addEventListener('DOMContentLoaded', function() {
-  lightbox = new SimpleLightbox('.gallery a');
-});
