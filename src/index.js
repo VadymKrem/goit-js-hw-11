@@ -20,7 +20,7 @@ loadMoreBtn.classList.add('is-hidden');
 let totalValues;
 let inputValue = '';
 
-const lightBox = new SimpleLightbox('.gallery a', {
+let lightBox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
   enableKeyboard: true
@@ -42,7 +42,7 @@ function makeMarkup(responseData) {
       }) =>
         `
     <div class="photo-card">
-      <a class="gallery-link" href="${largeImageURL}">
+      <a class="link-img" href="${largeImageURL}">
         <img
           class="gallery-image"
           src="${webformatURL}" 
@@ -80,7 +80,7 @@ async function onSubmit(event) {
             } else {
               galleryPhotos.innerHTML = '';
               galleryPhotos.insertAdjacentHTML('beforeend', makeMarkup(responseData));
-              lightbox.refresh();
+              // lightbox.refresh();
   //             const { height: cardHeight } = document
   //             .querySelector(".gallery")
   //             .firstElementChild.getBoundingClientRect();
@@ -134,17 +134,17 @@ window.scrollBy({
   top: cardHeight * 2,
   behavior: "smooth",
 });
-  loadMoreBtn.classList.remove('is-hidden');
-  // loadMoreBtn.addEventListen('', loadMoreImages())
-  // const documentRect = document.documentElement.getBoundingClientRect();
+  // loadMoreBtn.classList.remove('is-hidden');
   
-  //   if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.scrollY > currentScrollTop) {
+  const documentRect = document.documentElement.getBoundingClientRect();
+  
+    if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.scrollY > currentScrollTop) {
       
-  //     loadMoreBtn.classList.remove('is-hidden');
-  //     loadMoreBtn.addEventListener('submit', loadMoreImages())
+    loadMoreImages()
 
-  // }
+  }
   currentScrollTop = window.scrollY;
 }
 
 window.addEventListener('scroll', onScroll);
+// loadMoreBtn.addEventListen('click', loadMoreImages())
